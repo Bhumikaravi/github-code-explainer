@@ -4,3 +4,4 @@ streamlit
 gitpython
 requests
 pydantic
+google-genai
