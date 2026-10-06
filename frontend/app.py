@@ -1,8 +1,21 @@
+import sys
+import os
 import html
 import re
 
 import streamlit as st
 
+# ---------------------------------------------------------------------------
+# Fix Python path for Streamlit Cloud
+# ---------------------------------------------------------------------------
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+# ---------------------------------------------------------------------------
+# Backend imports
+# ---------------------------------------------------------------------------
 from backend.services.repo_processor import (
     clone_repository,
     extract_code,
@@ -15,26 +28,28 @@ from backend.services.llm_service import (
     stream_explanation,
 )
 
-
+# ---------------------------------------------------------------------------
+# Page configuration
+# ---------------------------------------------------------------------------
 st.set_page_config(
     page_title="GitHub Code Explainer",
     page_icon="💻",
     layout="centered",
 )
 
-
 # ---------------------------------------------------------------------------
 # Colour themes
 # ---------------------------------------------------------------------------
-
 DEFAULT_THEME = "Sunset"
 
 THEMES = {
     "Sunset": {
         "bg": "#3B1C5A",
-        "bg-image": "radial-gradient(var(--dot) 1px, transparent 1px), "
-                    "linear-gradient(160deg, #3B1C5A 0%, #8A2F5B 55%, #B8482F 100%)",
-        "bg-size": "24px 24px, 100% 100%",
+        "bg-image": (
+            "radial-gradient(var(--dot) 1px, transparent 1px), "
+            "linear-gradient(160deg, #3B1C5A 0%, #8A2F5B 55%, #B8482F 100%)"
+        ),
+        "bg-size": "24px 24px, 100% ",
         "panel": "#3A1A52",
         "edge": "#A8629B",
         "text": "#FFF1F5",
@@ -53,11 +68,12 @@ THEMES = {
         "focus": "rgba(255,179,107,0.35)",
         "shadow": "rgba(0,0,0,0.4)",
     },
-
     "Aurora": {
         "bg": "#0A1A3F",
-        "bg-image": "radial-gradient(var(--dot) 1px, transparent 1px), "
-                    "linear-gradient(160deg, #0A1A3F 0%, #0E4A5C 55%, #14705F 100%)",
+        "bg-image": (
+            "radial-gradient(var(--dot) 1px, transparent 1px), "
+            "linear-gradient(160deg, #0A1A3F 0%, #0E4A5C 55%, #14705F 100%)"
+        ),
         "bg-size": "24px 24px, 100% 100%",
         "panel": "#0F2F45",
         "edge": "#2E6A7E",
@@ -77,11 +93,12 @@ THEMES = {
         "focus": "rgba(94,234,212,0.28)",
         "shadow": "rgba(0,0,0,0.4)",
     },
-
     "Peach": {
         "bg": "#FFE9DC",
-        "bg-image": "radial-gradient(var(--dot) 1px, transparent 1px), "
-                    "linear-gradient(135deg, #FFE9DC 0%, #FFD9E8 50%, #DCE6FF 100%)",
+        "bg-image": (
+            "radial-gradient(var(--dot) 1px, transparent 1px), "
+            "linear-gradient(135deg, #FFE9DC 0%, #FFD9E8 50%, #DCE6FF 100%)"
+        ),
         "bg-size": "24px 24px, 100% 100%",
         "panel": "#FFFFFF",
         "edge": "#F0C9D6",
@@ -101,15 +118,7 @@ THEMES = {
         "focus": "rgba(214,51,108,0.25)",
         "shadow": "rgba(120,40,70,0.15)",
     },
-
-    
-
-   
-
-
-   
 }
-
 
 DEFAULT_BACKGROUND = {
     "bg-image": "radial-gradient(var(--dot) 1px, transparent 1px)",
@@ -119,12 +128,20 @@ DEFAULT_BACKGROUND = {
 
 def theme_variables(theme):
     merged = {**DEFAULT_BACKGROUND, **theme}
-    return ":root{" + "".join(
-        f"--{key}:{value};"
-        for key, value in merged.items()
-    ) + "}"
+
+    return (
+        ":root{"
+        + "".join(
+            f"--{key}:{value};"
+            for key, value in merged.items()
+        )
+        + "}"
+    )
 
 
+# ---------------------------------------------------------------------------
+# CSS
+# ---------------------------------------------------------------------------
 CSS = """
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Sora:wght@600;700&display=swap');
 
@@ -438,39 +455,65 @@ CSS = """
 """
 
 
-HERO_HTML = (
-    '<div class="hero">'
-    '<div class="hero-title">'
-    'Understand any GitHub repository in plain English'
-    '</div>'
-    '<p class="hero-sub">'
-    'Paste a public repository link. The application reads the key files '
-    'and uses AI to explain what the project does, how it works, '
-    'and where to start.'
-    '</p>'
-    '<div class="steps">'
-    '<div class="step"><span class="step-num">1</span><div>'
-    '<div class="step-title">Paste a link</div>'
-    '<div class="step-text">Any public GitHub repository.</div>'
-    '</div></div>'
-    '<div class="step"><span class="step-num">2</span><div>'
-    '<div class="step-title">Key files are picked</div>'
-    '<div class="step-text">'
-    'README, config, code, notebooks and data previews.'
-    '</div></div></div>'
-    '<div class="step"><span class="step-num">3</span><div>'
-    '<div class="step-title">Read the explanation</div>'
-    '<div class="step-text">'
-    'Written for beginners. Download it as Markdown.'
-    '</div></div></div>'
-    '</div></div>'
-)
+# ---------------------------------------------------------------------------
+# Hero HTML
+# ---------------------------------------------------------------------------
+HERO_HTML = """
+<div class="hero">
+    <div class="hero-title">
+        Understand any GitHub repository in plain English
+    </div>
+
+    <p class="hero-sub">
+        Paste a public repository link. The application reads the key files
+        and uses AI to explain what the project does, how it works,
+        and where to start.
+    </p>
+
+    <div class="steps">
+
+        <div class="step">
+            <span class="step-num">1</span>
+            <div>
+                <div class="step-title">Paste a link</div>
+                <div class="step-text">
+                    Any public GitHub repository.
+                </div>
+            </div>
+        </div>
+
+        <div class="step">
+            <span class="step-num">2</span>
+            <div>
+                <div class="step-title">Key files are picked</div>
+                <div class="step-text">
+                    README, config, code, notebooks and data previews.
+                </div>
+            </div>
+        </div>
+
+        <div class="step">
+            <span class="step-num">3</span>
+            <div>
+                <div class="step-title">Read the explanation</div>
+                <div class="step-text">
+                    Written for beginners. Download it as Markdown.
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+"""
 
 
+# ---------------------------------------------------------------------------
+# Repository name
+# ---------------------------------------------------------------------------
 def repo_name(url):
     match = re.search(
         r"github\.com/([^/\s]+/[^/\s#?]+)",
-        url
+        url,
     )
 
     if not match:
@@ -481,6 +524,9 @@ def repo_name(url):
     return name[:-4] if name.endswith(".git") else name
 
 
+# ---------------------------------------------------------------------------
+# Summary
+# ---------------------------------------------------------------------------
 def render_summary(url, files_read):
     st.markdown(
         '<div class="summary">'
@@ -494,15 +540,13 @@ def render_summary(url, files_read):
 # ---------------------------------------------------------------------------
 # Theme
 # ---------------------------------------------------------------------------
-
 theme_name = st.session_state.get(
     "theme",
-    DEFAULT_THEME
+    DEFAULT_THEME,
 )
 
 if theme_name not in THEMES:
     theme_name = DEFAULT_THEME
-
 
 st.markdown(
     "<style>"
@@ -516,7 +560,6 @@ st.markdown(
 # ---------------------------------------------------------------------------
 # Session state
 # ---------------------------------------------------------------------------
-
 if "result" not in st.session_state:
     st.session_state.result = None
 
@@ -524,14 +567,13 @@ if "result" not in st.session_state:
 # ---------------------------------------------------------------------------
 # Theme selector
 # ---------------------------------------------------------------------------
-
 _, theme_col = st.columns([4, 1])
 
 with theme_col:
     st.selectbox(
         "Theme",
         list(THEMES),
-        index=list(THEMES).index(DEFAULT_THEME),
+        index=list(THEMES).index(theme_name),
         key="theme",
         label_visibility="collapsed",
     )
@@ -540,7 +582,6 @@ with theme_col:
 # ---------------------------------------------------------------------------
 # Hero
 # ---------------------------------------------------------------------------
-
 st.markdown(
     HERO_HTML,
     unsafe_allow_html=True,
@@ -550,16 +591,15 @@ st.markdown(
 # ---------------------------------------------------------------------------
 # Input section
 # ---------------------------------------------------------------------------
-
 with st.container(key="input_panel"):
 
     st.markdown(
         '<div class="panel-title">Choose a repository</div>'
         '<div class="panel-hint">'
-        'Public repositories only. '
-        'Try a small one first, like '
-        'https://github.com/octocat/Hello-World'
-        '</div>',
+        "Public repositories only. "
+        "Try a small one first, like "
+        "https://github.com/octocat/Hello-World"
+        "</div>",
         unsafe_allow_html=True,
     )
 
@@ -575,7 +615,6 @@ with st.container(key="input_panel"):
 # ---------------------------------------------------------------------------
 # Result section
 # ---------------------------------------------------------------------------
-
 if clicked:
 
     url = repo_url.strip()
@@ -590,7 +629,7 @@ if clicked:
 
     elif not re.match(
         r"^https?://github\.com/[^/\s]+/[^/\s#?]+/?$",
-        url
+        url,
     ):
 
         st.error(
@@ -603,13 +642,14 @@ if clicked:
 
         try:
 
+            # ---------------------------------------------------------------
             # Check Gemini API configuration
+            # ---------------------------------------------------------------
             check_model()
 
             # ---------------------------------------------------------------
             # Clone repository
             # ---------------------------------------------------------------
-
             with st.spinner(
                 "Cloning the repository and picking the key files..."
             ):
@@ -620,11 +660,9 @@ if clicked:
 
                 code_files = extract_code(repo_path)
 
-
             # ---------------------------------------------------------------
             # Validate repository
             # ---------------------------------------------------------------
-
             if not file_tree.strip():
 
                 st.error(
@@ -643,7 +681,6 @@ if clicked:
                 # -----------------------------------------------------------
                 # Generate explanation
                 # -----------------------------------------------------------
-
                 with st.container(
                     key="explanation"
                 ):
@@ -662,7 +699,6 @@ if clicked:
                 # -----------------------------------------------------------
                 # Save result
                 # -----------------------------------------------------------
-
                 st.session_state.result = {
                     "url": url,
                     "files_read": files_read,
@@ -683,11 +719,12 @@ if clicked:
 
         finally:
 
-            # Always clean up the cloned repository
+            # Always clean up cloned repository
             if repo_path:
 
                 try:
                     cleanup_repository(repo_path)
+
                 except Exception:
                     pass
 
@@ -695,7 +732,6 @@ if clicked:
 # ---------------------------------------------------------------------------
 # Display previous result
 # ---------------------------------------------------------------------------
-
 elif st.session_state.result:
 
     saved = st.session_state.result
@@ -717,7 +753,6 @@ elif st.session_state.result:
 # ---------------------------------------------------------------------------
 # Download explanation
 # ---------------------------------------------------------------------------
-
 if st.session_state.result:
 
     saved = st.session_state.result
